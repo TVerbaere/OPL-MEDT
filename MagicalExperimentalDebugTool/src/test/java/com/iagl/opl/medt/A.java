@@ -1,4 +1,4 @@
-package com.iagl.opl.MagicalExperimentalDebugTool;
+package com.iagl.opl.medt;
 
 public class A {
 	

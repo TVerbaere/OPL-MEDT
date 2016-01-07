@@ -1,4 +1,4 @@
-package com.iagl.opl.MagicalExperimentalDebugTool;
+package com.iagl.opl.medt;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -10,13 +10,13 @@ import org.junit.runner.Request;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
-public class MEDT {
+public class MagicalExperimentalDebugTool {
 	
 	private final Class<?> TEST_CLASS;
 	
 	private List<Failure> current_failures;
 	
-	public MEDT(Class<?> clazz) {
+	public MagicalExperimentalDebugTool(Class<?> clazz) {
 		TEST_CLASS = clazz;
 		current_failures = new ArrayList<Failure>();
 	}
@@ -24,6 +24,7 @@ public class MEDT {
 	
 	public void debugClass() {
 		//DO JOB
+			
 		System.out.println("NY");
 	}
 	
