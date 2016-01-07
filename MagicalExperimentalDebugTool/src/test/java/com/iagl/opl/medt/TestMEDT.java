@@ -12,7 +12,15 @@ public class TestMEDT {
 		List<Integer> failed = medt.runTestClass();
 		
 		for (Integer _assert : failed)
-			System.out.println("assert failed line : "+_assert);
+			System.out.println("assert line : "+_assert);
+		
+		for (String method : medt.getProblematicMethods())
+			System.out.println("method failed : "+method);
+		
+		for (String method : medt.getTestedProblematicMethods())
+			System.out.println("method tested : "+method);
+		
+
 		
 		medt.debugClass();
 		

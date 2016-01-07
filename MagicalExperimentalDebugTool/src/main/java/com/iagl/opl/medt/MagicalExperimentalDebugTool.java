@@ -3,7 +3,9 @@ package com.iagl.opl.medt;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
@@ -18,7 +20,6 @@ public class MagicalExperimentalDebugTool {
 	
 	public MagicalExperimentalDebugTool(Class<?> clazz) {
 		TEST_CLASS = clazz;
-		current_failures = new ArrayList<Failure>();
 	}
 	
 	
@@ -29,6 +30,9 @@ public class MagicalExperimentalDebugTool {
 	}
 	
 	public List<Integer> runTestClass() {
+		
+		current_failures = new ArrayList<Failure>();
+		
 		for (Method m : TEST_CLASS.getDeclaredMethods()) {
 			if (m.getAnnotations()[0].annotationType().getName().equals("org.junit.Test")) {
 				this.runTest(m.getName());
@@ -36,8 +40,7 @@ public class MagicalExperimentalDebugTool {
 		}
 		
 		List<Integer> problems = this.problematicAsserts();
-		current_failures = new ArrayList<Failure>();
-		
+				
 		return problems;
 		
 	}
@@ -99,19 +102,73 @@ public class MagicalExperimentalDebugTool {
 	
 	public Class<?> getTestedClass() {
 		
+		List<Class<?>> clazz = new ArrayList<Class<?>>();
+		
 		// Hypothèse 1 : La classe testée est déclarée en attribut dans la classe de test
-		// (= initialisation dans un setUp, ignore le cas où la classe testé est redéfinie a chaque test localement)
+		// (= initialisation dans un setUp, ignore le cas où la classe testée est redéfinie à chaque test localement)
 		
 		// Hypothèse 2 : Le package de la classe de test est identique au package de la classe testée
-		//(= bonne pratique des tests unitaires)
+		// (= bonne pratique des tests unitaires)
+		
+		// Hypothèse 3 : Le nom de la méthode testée se trouve dans le nom de la méthode de test
+		// (= bonne pratique des tests utnitaires)
 				
 		for (Field f :TEST_CLASS.getDeclaredFields()) {
-			if (f.getType().getPackage().equals(TEST_CLASS.getPackage()))
-				return f.getType();
+			if (f.getType().getPackage().equals(TEST_CLASS.getPackage())) {
+				clazz.add(f.getType());
+			}
 		}
 		
+		if (clazz.isEmpty())
+			System.out.println("Cannot found tested class. Your program is so bad !");
+		
+		if (clazz.size() == 1)
+			return clazz.get(0);
+		
+		for (Class<?> c : clazz) {
+			if (TEST_CLASS.getName().toLowerCase().contains(c.getName().toLowerCase()))
+				return c;
+		}
+		
+		System.out.println("Cannot found tested class. Your program is so bad !");
 		return null;
 	}
 	
+	public Set<String> getProblematicMethods() {
+		
+		Set<String> set = new HashSet<String>();
+		
+		for (Failure f : current_failures) {
+			StackTraceElement[] tab = f.getException().getStackTrace();
+			for (int i=0; i < tab.length; i++) {
+				if (tab[i].getClassName().equals(TEST_CLASS.getName())) {
+					set.add(tab[i].getMethodName().toLowerCase());
+				}
+			}
+		}
+		
+		return set;
+	}
+	
+	public Set<String> getTestedProblematicMethods() {
+		Set<String> set = this.getProblematicMethods();
+		Set<String> testedset = new HashSet<String>();
+		
+		Class<?> clazz = this.getTestedClass();
+		
+		if (clazz == null) {
+			System.out.println("Cannot found tested problematic methods. Your program is so bad !");
+		}
+		else {
+			for (Method m : clazz.getMethods()) {
+				for (String s : set) {
+					if (s.contains(m.getName().toLowerCase()))
+						testedset.add(m.getName());
+				}
+			}
+		}
+		
+		return testedset;
+	}
 	
 }
