@@ -1,8 +1,8 @@
 package com.iagl.opl.medt;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.junit.runner.JUnitCore;
@@ -95,6 +95,22 @@ public class MagicalExperimentalDebugTool {
 		
 		
 		return 1;
+	}
+	
+	public Class<?> getTestedClass() {
+		
+		// Hypothèse 1 : La classe testée est déclarée en attribut dans la classe de test
+		// (= initialisation dans un setUp, ignore le cas où la classe testé est redéfinie a chaque test localement)
+		
+		// Hypothèse 2 : Le package de la classe de test est identique au package de la classe testée
+		//(= bonne pratique des tests unitaires)
+				
+		for (Field f :TEST_CLASS.getDeclaredFields()) {
+			if (f.getType().getPackage().equals(TEST_CLASS.getPackage()))
+				return f.getType();
+		}
+		
+		return null;
 	}
 	
 	

@@ -2,12 +2,12 @@ package com.iagl.opl.medt;
 
 import java.util.List;
 
-import com.iagl.opl.medt.MagicalExperimentalDebugTool;
-
 public class TestMEDT {
 	
 	public static void main(String[] args) {
 		MagicalExperimentalDebugTool medt = new MagicalExperimentalDebugTool(ATest.class);
+		
+		System.out.println("Classe testée : "+medt.getTestedClass());
 		
 		List<Integer> failed = medt.runTestClass();
 		
