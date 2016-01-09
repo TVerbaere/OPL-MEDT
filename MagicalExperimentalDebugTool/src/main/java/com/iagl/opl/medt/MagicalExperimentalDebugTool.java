@@ -12,36 +12,69 @@ import org.junit.runner.Request;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
+import com.iagl.opl.medt.processors.ReallocationOverSightProcessor;
+
+import spoon.Launcher;
+import spoon.reflect.declaration.CtClass;
+import spoon.reflect.visitor.filter.NameFilter;
+
 public class MagicalExperimentalDebugTool {
 	
-	private final Class<?> TEST_CLASS;
+	private static Class<?> TEST_CLASS;
 	
-	private List<Failure> current_failures;
+	private static List<Failure> current_failures;
+	
+	private List<Integer> failures_lines;
+	
+	private String mpath = "";
 	
 	public MagicalExperimentalDebugTool(Class<?> clazz) {
 		TEST_CLASS = clazz;
 	}
 	
-	
-	public void debugClass() {
-		//DO JOB
-			
-		System.out.println("NY");
+	public MagicalExperimentalDebugTool(Class<?> clazz, String path) {
+		TEST_CLASS = clazz;
+		mpath = path;
+		
 	}
 	
-	public List<Integer> runTestClass() {
+	public void debugClass() {
 		
+		runTestClass();
+			
+		String input = String.format("%s/%s%s.java", System.getProperty("user.dir")
+				, mpath, getTestedClass().getName().replace(".", "/"));
+						
+		Launcher l = new Launcher();
+					
+        l.addInputResource(input);
+        l.addProcessor(new ReallocationOverSightProcessor());
+        l.run();
+         
+        CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
+		
+        System.out.println(c);
+        
+		//Class<?> spoonClazz = c.getClass(); // A CHANGER !
+		
+		//if (regressions(spoonClazz) == 1)
+		//	System.out.println(spoonClazz);// Sauvegarder les modification
+		
+	}
+	
+	private void runTestClass() {
+				
 		current_failures = new ArrayList<Failure>();
+		failures_lines = new ArrayList<Integer>();
 		
 		for (Method m : TEST_CLASS.getDeclaredMethods()) {
 			if (m.getAnnotations()[0].annotationType().getName().equals("org.junit.Test")) {
-				this.runTest(m.getName());
+				runTest(m.getName());
 			}
 		}
 		
-		List<Integer> problems = this.problematicAsserts();
-				
-		return problems;
+		failures_lines = problematicAsserts();
+			
 		
 	}
 	
@@ -61,7 +94,7 @@ public class MagicalExperimentalDebugTool {
 	private List<Integer> problematicAsserts() {
 		List<Integer> lines = new ArrayList<Integer>();
 		
-		for (int i=0; i < this.countCurrentFailures(); i++) {
+		for (int i=0; i < countCurrentFailures(); i++) {
 			StackTraceElement[] stacktrace = current_failures.get(i).getException().getStackTrace();
 			int j = 0;
 			boolean stop = false;
@@ -87,8 +120,13 @@ public class MagicalExperimentalDebugTool {
 	 * @param last_result
 	 * @return
 	 */
-	public int regressions(List<Integer> last_result) {
-		List<Integer> new_result = this.runTestClass();
+	private int regressions(Class<?> newClazz) {
+		
+		List<Integer> last_result = getFailuresLines();
+		
+		MagicalExperimentalDebugTool medt = new MagicalExperimentalDebugTool(newClazz);
+		medt.runTestClass();
+		List<Integer> new_result = medt.getFailuresLines();
 		
 		if (last_result.equals(new_result))
 			return 0;
@@ -96,11 +134,15 @@ public class MagicalExperimentalDebugTool {
 		if (new_result.size() >= last_result.size())
 			return -1;
 		
+		for (Integer i : new_result) {
+			if (!last_result.contains(i))
+				return -1;
+		}
 		
 		return 1;
 	}
 	
-	public Class<?> getTestedClass() {
+	private static Class<?> getTestedClass() {
 		
 		List<Class<?>> clazz = new ArrayList<Class<?>>();
 		
@@ -134,7 +176,7 @@ public class MagicalExperimentalDebugTool {
 		return null;
 	}
 	
-	public Set<String> getProblematicMethods() {
+	private static Set<String> getProblematicMethods() {
 		
 		Set<String> set = new HashSet<String>();
 		
@@ -150,11 +192,11 @@ public class MagicalExperimentalDebugTool {
 		return set;
 	}
 	
-	public Set<String> getTestedProblematicMethods() {
-		Set<String> set = this.getProblematicMethods();
+	public static Set<String> getTestedProblematicMethods() {
+		Set<String> set = getProblematicMethods();
 		Set<String> testedset = new HashSet<String>();
 		
-		Class<?> clazz = this.getTestedClass();
+		Class<?> clazz = getTestedClass();
 		
 		if (clazz == null) {
 			System.out.println("Cannot found tested problematic methods. Your program is so bad !");
@@ -169,6 +211,10 @@ public class MagicalExperimentalDebugTool {
 		}
 		
 		return testedset;
+	}
+	
+	private List<Integer> getFailuresLines() {
+		return failures_lines;
 	}
 	
 }
