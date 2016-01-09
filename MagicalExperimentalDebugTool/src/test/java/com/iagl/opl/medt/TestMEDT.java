@@ -5,7 +5,7 @@ public class TestMEDT {
 	
 	public static void main(String[] args) {
 				
-		MagicalExperimentalDebugTool medt = new MagicalExperimentalDebugTool(DarkVadorTest.class,"src/test/java/");
+		MagicalExperimentalDebuggingTool medt = new MagicalExperimentalDebuggingTool(DarkVadorTest.class,"src/test/java/");
 		
 		medt.debugClass();
 				

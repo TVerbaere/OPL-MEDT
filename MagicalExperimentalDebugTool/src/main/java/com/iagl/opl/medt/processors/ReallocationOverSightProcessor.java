@@ -3,7 +3,7 @@ package com.iagl.opl.medt.processors;
 import java.util.List;
 import java.util.Set;
 
-import com.iagl.opl.medt.MagicalExperimentalDebugTool;
+import com.iagl.opl.medt.MagicalExperimentalDebuggingTool;
 
 import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.CtBlock;
@@ -19,9 +19,9 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtClass> {
 	@Override
 	public boolean isToBeProcessed(CtClass element) {
 		
-		String name = MagicalExperimentalDebugTool.getTestedClass().getSimpleName();
+		String name = MagicalExperimentalDebuggingTool.getTestedClass().getSimpleName();
 		
-		String packageName = MagicalExperimentalDebugTool.getTestedClass().getPackage().getName();
+		String packageName = MagicalExperimentalDebuggingTool.getTestedClass().getPackage().getName();
 		
 		if (name.equals(element.getSimpleName()) && packageName.equals(element.getPackage().getQualifiedName()))
 			return true;
@@ -34,7 +34,7 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtClass> {
 		
 		Set<CtMethod> methods = element.getAllMethods();
 		
-		Set<String> toSpoon = MagicalExperimentalDebugTool.getTestedProblematicMethods();
+		Set<String> toSpoon = MagicalExperimentalDebuggingTool.getTestedProblematicMethods();
 		
 		for (CtMethod m : methods) {
 			

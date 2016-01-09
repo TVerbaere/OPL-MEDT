@@ -17,7 +17,7 @@ import spoon.Launcher;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.visitor.filter.NameFilter;
 
-public class MagicalExperimentalDebugTool {
+public class MagicalExperimentalDebuggingTool {
 	
 	private static Class<?> TEST_CLASS;
 	
@@ -29,11 +29,11 @@ public class MagicalExperimentalDebugTool {
 	
 	private String mpath = "";
 	
-	public MagicalExperimentalDebugTool(Class<?> clazz) {
+	public MagicalExperimentalDebuggingTool(Class<?> clazz) {
 		TEST_CLASS = clazz;
 	}
 	
-	public MagicalExperimentalDebugTool(Class<?> clazz, String path) {
+	public MagicalExperimentalDebuggingTool(Class<?> clazz, String path) {
 		TEST_CLASS = clazz;
 		mpath = path;
 		
@@ -126,7 +126,7 @@ public class MagicalExperimentalDebugTool {
 		
 		List<Integer> last_result = getFailuresLines();
 				
-		MagicalExperimentalDebugTool medt = new MagicalExperimentalDebugTool(TEST_CLASS,mpath);
+		MagicalExperimentalDebuggingTool medt = new MagicalExperimentalDebuggingTool(TEST_CLASS,mpath);
 		medt.runTestClass();
 		List<Integer> new_result = medt.getFailuresLines();
 		
