@@ -1,5 +1,4 @@
 package com.iagl.opl.medt;
-
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -22,6 +21,8 @@ public class MagicalExperimentalDebugTool {
 	
 	private static Class<?> TEST_CLASS;
 	
+	private static Class<?> TESTED_CLASS;
+		
 	private static List<Failure> current_failures;
 	
 	private List<Integer> failures_lines;
@@ -41,6 +42,7 @@ public class MagicalExperimentalDebugTool {
 	public void debugClass() {
 		
 		runTestClass();
+		calculateTestedClass();
 			
 		String input = String.format("%s/%s%s.java", System.getProperty("user.dir")
 				, mpath, getTestedClass().getName().replace(".", "/"));
@@ -52,13 +54,14 @@ public class MagicalExperimentalDebugTool {
         l.run();
          
         CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
-		
+        
         System.out.println(c);
         
-		//Class<?> spoonClazz = c.getClass(); // A CHANGER !
+        // COMMENT RUNNER LES TESTS SUR LA CLASSE SPOONEE ?
 		
-		//if (regressions(spoonClazz) == 1)
-		//	System.out.println(spoonClazz);// Sauvegarder les modification
+		//if (regressions() != 1) {
+		//	SAUVEGARDER LA CLASSE SPOONEE
+		//}
 		
 	}
 	
@@ -74,7 +77,6 @@ public class MagicalExperimentalDebugTool {
 		}
 		
 		failures_lines = problematicAsserts();
-			
 		
 	}
 	
@@ -120,11 +122,11 @@ public class MagicalExperimentalDebugTool {
 	 * @param last_result
 	 * @return
 	 */
-	private int regressions(Class<?> newClazz) {
+	private int regressions() {
 		
 		List<Integer> last_result = getFailuresLines();
-		
-		MagicalExperimentalDebugTool medt = new MagicalExperimentalDebugTool(newClazz);
+				
+		MagicalExperimentalDebugTool medt = new MagicalExperimentalDebugTool(TEST_CLASS,mpath);
 		medt.runTestClass();
 		List<Integer> new_result = medt.getFailuresLines();
 		
@@ -142,7 +144,11 @@ public class MagicalExperimentalDebugTool {
 		return 1;
 	}
 	
-	private static Class<?> getTestedClass() {
+	public static Class<?> getTestedClass() {
+		return TESTED_CLASS;
+	}
+	
+	private static Class<?> calculateTestedClass() {
 		
 		List<Class<?>> clazz = new ArrayList<Class<?>>();
 		
@@ -164,12 +170,16 @@ public class MagicalExperimentalDebugTool {
 		if (clazz.isEmpty())
 			System.out.println("Cannot found tested class. Your program is so bad !");
 		
-		if (clazz.size() == 1)
+		if (clazz.size() == 1) {
+			TESTED_CLASS = clazz.get(0);
 			return clazz.get(0);
+		}
 		
 		for (Class<?> c : clazz) {
-			if (TEST_CLASS.getName().toLowerCase().contains(c.getName().toLowerCase()))
+			if (TEST_CLASS.getName().toLowerCase().contains(c.getName().toLowerCase())) {
+				TESTED_CLASS = c;
 				return c;
+			}
 		}
 		
 		System.out.println("Cannot found tested class. Your program is so bad !");
