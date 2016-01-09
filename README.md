@@ -1,2 +1,2 @@
 # OPL-MEDT
-The Magical &amp; Experimental Debug Tool
+The Magical &amp; Experimental Debugging Tool
