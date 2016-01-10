@@ -1,5 +1,6 @@
 package com.iagl.opl.medt.processors;
 
+import java.awt.Point;
 import java.util.List;
 
 import com.iagl.opl.medt.MagicalExperimentalDebuggingTool;
@@ -36,35 +37,59 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> 
 	}
 
 	/**
-	 * First we get all the method
-	 * for each class, we look for the method to spoon
+	 *
+	 * for each method, we look for the method to spoon
 	 * 
 	 * 
 	 */
 	public void process(CtMethod element) {
-
+		// For the method to spoon, get all invocations thanks to a filter
 		Filter<CtInvocation> filter = new TypeFilter(CtInvocation.class);
 		List<CtInvocation> invocations = element.getElements(filter);
+		
+		// if the actual permutation is (0,0) then the processor is started for the first time, so we count candidates
+		if (MagicalExperimentalDebuggingTool.getActualPermutation().equals(new Point(0,0))) {
+			for (CtInvocation invocation : invocations) {
+				
+				if (invocation.getParent() instanceof CtBlock) {
+					// We have found a candidate, so we have to increment the number of permutations
+					MagicalExperimentalDebuggingTool.incrPermutations();
+				}
 
+			}
+		}
+
+        //System.out.println("-----"+MagicalExperimentalDebuggingTool.getCurrentMethod()+" perm : "+MagicalExperimentalDebuggingTool.getActualPermutation()+"------");
+		
+		int i = 0;
 		// getting all invocation in this method
 		for (CtInvocation invocation : invocations) {
-
+				
 			if (invocation.getParent() instanceof CtBlock) {
-
+					
 				//if the format of invocation is ok, we apply the solution.
 				if (correctFormat(invocation)) {
-					//we try to change the operation by stringObject = Operation 
-					String new_code = String.format("%s = %s", invocation.getTarget().toString(),
-							invocation.toString());
-
-					CtCodeSnippetStatement newStatement = getFactory().Core().createCodeSnippetStatement();
-					newStatement.setValue(new_code);
-
-					invocation.replace(newStatement);
+					i++;
+					
+					// we check if the candidate is concerned by the change
+					if (MagicalExperimentalDebuggingTool.getActualPermutation().x <= i &&
+							MagicalExperimentalDebuggingTool.getActualPermutation().y >= i) {
+							
+						//we try to change the operation by stringObject = Operation 
+						String new_code = String.format("%s = %s", invocation.getTarget().toString(),
+									invocation.toString());
+		
+						CtCodeSnippetStatement newStatement = getFactory().Core().createCodeSnippetStatement();
+						newStatement.setValue(new_code);
+						
+						invocation.replace(newStatement);
+					}
 				}
 			}
-
+	
 		}
+		// next permutation
+		MagicalExperimentalDebuggingTool.nextPermutation();	
 
 	}			
 

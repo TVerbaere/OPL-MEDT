@@ -1,4 +1,6 @@
 package com.iagl.opl.medt;
+
+import java.awt.Point;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -20,59 +22,92 @@ import spoon.reflect.visitor.filter.NameFilter;
 
 public class MagicalExperimentalDebuggingTool {
 	
+	// the class of test
 	private static Class<?> TEST_CLASS;
 	
+	// the tested class (class tested by the class of test)
 	private static Class<?> TESTED_CLASS;
 	
+	// the current method to spoon
 	private static String CURRENT_METHOD;
 		
-	private static List<Failure> current_failures;
+	// list of failures
+	private List<Failure> current_failures;
 	
+	// list of failure's line number
 	private List<Integer> failures_lines;
+	
+	// list of aborts methods
+	private Set<String> aborts;
 	
 	private String mpath = ""; // Only use for intern tests
 	
+	// list of processors applied by MEDT
 	private Processor[] procs = {new ReallocationOverSightProcessor()};
 	
 	public MagicalExperimentalDebuggingTool(Class<?> clazz) {
 		TEST_CLASS = clazz;
+		aborts = new HashSet<String>();
 	}
 	
 	// Constructor only use for intern tests
 	public MagicalExperimentalDebuggingTool(Class<?> clazz, String path) {
 		TEST_CLASS = clazz;
 		mpath = path;
-		
+		aborts = new HashSet<String>();
 	}
 	
+	/**
+	 * Try to debug the class
+	 */
 	public void debugClass() {
-		
+		// we run tests
 		runTestClass();
+		// we try to retrieve the tested class
 		calculateTestedClass();
-			
+		
+		// Path of the class to spoon
 		String input = String.format("%s/%s%s.java", System.getProperty("user.dir")
 				, mpath, getTestedClass().getName().replace(".", "/"));
 		
-		for (int i=0; i < procs.length; i++) {
 		
-			for (String method : getTestedProblematicMethods()) {
-				CURRENT_METHOD = method;
-				Launcher l = new Launcher();		
-		        l.addInputResource(input);
-		        l.addProcessor(procs[i]);;
-		        l.run();
-		         
-		        CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
-		        
-		        System.out.println(c);
+		while (!getTestedProblematicMethods().isEmpty()) {
+			CURRENT_METHOD = String.valueOf(getTestedProblematicMethods().toArray()[0]);
+		
+			for (int i=0; i < procs.length; i++) {
+		
+				boolean first_start = true;
+				
+				while (first_start || !getActualPermutation().equals(new Point(0,0))) {
+				
+					if (first_start)
+						first_start = false;
+					
+					Launcher l = new Launcher();		
+			        l.addInputResource(input);
+			        l.addProcessor(procs[i]);
+			        l.run();
+			         
+			        CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
+			        System.out.println(c);
+			        
+			        // COMMENT RUNNER LES TESTS SUR LA CLASSE SPOONEE ???
+					
+					if (regressions() == 1) {
+						//	RIEN
+					}
+			         else {
+			        	//REMETTRE L'ANCIENNE CLASSE
+			         }
+			     
+				}
 			}
+
+			// TOUTES LES POSSIBILITES DE MUTATIONS ONT ETE EXPLOITES : ABANDON POUR LA METHODE
+			aborts.add(CURRENT_METHOD);
 			
 		}
-        // COMMENT RUNNER LES TESTS SUR LA CLASSE SPOONEE ?
-		
-		//if (regressions() != 1) {
-		//	SAUVEGARDER LA CLASSE SPOONEE
-		//}
+			
 		
 	}
 	
@@ -152,6 +187,9 @@ public class MagicalExperimentalDebuggingTool {
 				return -1;
 		}
 		
+		failures_lines = new_result;
+		current_failures = medt.current_failures;
+		
 		return 1;
 	}
 	
@@ -197,49 +235,127 @@ public class MagicalExperimentalDebuggingTool {
 		return null;
 	}
 	
-	private static Set<String> getProblematicMethods() {
-		
+	/**
+	 * Get all problematic methods in the class of test
+	 * @return a set of all method name
+	 */
+	private Set<String> getProblematicMethods() {
+		// we initialize the return set
 		Set<String> set = new HashSet<String>();
 		
-		for (Failure f : current_failures) {
+		// for each failure
+		for (Failure f : this.current_failures) {
+			// and for each element in the stacktrace
 			StackTraceElement[] tab = f.getException().getStackTrace();
 			for (int i=0; i < tab.length; i++) {
+				// if we find the same class name in the stacktrace, add the method name in the return set
 				if (tab[i].getClassName().equals(TEST_CLASS.getName())) {
 					set.add(tab[i].getMethodName().toLowerCase());
 				}
 			}
 		}
-		
+		// finally we return the return set
 		return set;
 	}
 	
+	/**
+	 * Get all problematic methods tested in the class of test
+	 * @return a set of method name
+	 */
 	private  Set<String> getTestedProblematicMethods() {
+		// we retrieve all problematic method in the class of test
 		Set<String> set = getProblematicMethods();
+		// we initialize the return set
 		Set<String> testedset = new HashSet<String>();
 		
+		// we retrieve the tested class
 		Class<?> clazz = getTestedClass();
 		
+		// if the tested class is not found
 		if (clazz == null) {
 			System.out.println("Cannot found tested problematic methods. Your program is so bad !");
 		}
 		else {
+			// if the tested class is found, for each method m of this class
 			for (Method m : clazz.getMethods()) {
+				// for each problematic method s of the class of test
 				for (String s : set) {
+					// we compare s and m (if m contains s)
 					if (s.contains(m.getName().toLowerCase()))
-						testedset.add(m.getName());
+						// moreover, the method mustn't be abordted
+						if (!aborts.contains(m.getName()))
+							// if all conditions if ok, add in the return set
+							testedset.add(m.getName());
 				}
 			}
 		}
-		
+		// finally we return the return set
 		return testedset;
 	}
 	
+	/**
+	 * Get all failure's number line
+	 * @return a list with all number line of failures
+	 */
 	private List<Integer> getFailuresLines() {
 		return failures_lines;
 	}
 	
+	/**
+	 * Get the current method to spoon
+	 * @return the name of the current method to spoon
+	 */
 	public static String getCurrentMethod() {
 		return CURRENT_METHOD;
 	}
+	
+	// ============================= Permutations Manager ================================
+	
+	// number of candidates for the actual Spoon processor
+	public static int permutations = 0;
+	// actual permutation for the actual Spoon processor 
+	// ex :
+	// - (1,1) : spooned the first candidate
+	// - (1,2) : spooned the first and the second candidate
+	// - (2,2) : spooned the second candidate
+	private static Point actual_permutation = new Point(0,0);
+	
+	/**
+	 * Add a candidate
+	 */
+	public static void incrPermutations() {
+		permutations++;
+		actual_permutation = new Point(1,1);
+	}
+	
+	/**
+	 * Pass to the next couple of permutation
+	 */
+	public static void nextPermutation() {
+		int min = actual_permutation.x;
+		int max = actual_permutation.y;
+		
+		// if it's the maximal couple: reset 
+		if (min == permutations && max == permutations) {
+			actual_permutation = new Point(0,0);
+			permutations = 0;
+		}
+
+		else if (max == permutations) {
+			actual_permutation.setLocation(min+1, min+1);
+		}
+		else {
+			actual_permutation.setLocation(min, max+1);
+		}
+	}
+	
+	/**
+	 * Get the actual permutation to spoon
+	 * @return a point which represent the interval of candidates to spoon
+	 */
+	public static Point getActualPermutation() {
+		return actual_permutation;
+	}
+	
 	
 }
