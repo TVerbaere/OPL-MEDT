@@ -18,5 +18,10 @@ public class DarkVadorTest {
 	public void sayImYourFatherTest() {
 		assertEquals("Luke, I'm your father !", dark.sayImYourFather("Luke"));
 	}
+	
+	@Test
+	public void getSideTest() {
+		assertEquals("DARK", dark.getSide());
+	}
 
 }

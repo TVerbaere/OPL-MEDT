@@ -14,6 +14,7 @@ import org.junit.runner.notification.Failure;
 import com.iagl.opl.medt.processors.ReallocationOverSightProcessor;
 
 import spoon.Launcher;
+import spoon.processing.Processor;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.visitor.filter.NameFilter;
 
@@ -22,17 +23,22 @@ public class MagicalExperimentalDebuggingTool {
 	private static Class<?> TEST_CLASS;
 	
 	private static Class<?> TESTED_CLASS;
+	
+	private static String CURRENT_METHOD;
 		
 	private static List<Failure> current_failures;
 	
 	private List<Integer> failures_lines;
 	
-	private String mpath = "";
+	private String mpath = ""; // Only use for intern tests
+	
+	private Processor[] procs = {new ReallocationOverSightProcessor()};
 	
 	public MagicalExperimentalDebuggingTool(Class<?> clazz) {
 		TEST_CLASS = clazz;
 	}
 	
+	// Constructor only use for intern tests
 	public MagicalExperimentalDebuggingTool(Class<?> clazz, String path) {
 		TEST_CLASS = clazz;
 		mpath = path;
@@ -46,17 +52,22 @@ public class MagicalExperimentalDebuggingTool {
 			
 		String input = String.format("%s/%s%s.java", System.getProperty("user.dir")
 				, mpath, getTestedClass().getName().replace(".", "/"));
-						
-		Launcher l = new Launcher();
-					
-        l.addInputResource(input);
-        l.addProcessor(new ReallocationOverSightProcessor());
-        l.run();
-         
-        CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
-        
-        System.out.println(c);
-        
+		
+		for (int i=0; i < procs.length; i++) {
+		
+			for (String method : getTestedProblematicMethods()) {
+				CURRENT_METHOD = method;
+				Launcher l = new Launcher();		
+		        l.addInputResource(input);
+		        l.addProcessor(procs[i]);;
+		        l.run();
+		         
+		        CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
+		        
+		        System.out.println(c);
+			}
+			
+		}
         // COMMENT RUNNER LES TESTS SUR LA CLASSE SPOONEE ?
 		
 		//if (regressions() != 1) {
@@ -202,7 +213,7 @@ public class MagicalExperimentalDebuggingTool {
 		return set;
 	}
 	
-	public static Set<String> getTestedProblematicMethods() {
+	private  Set<String> getTestedProblematicMethods() {
 		Set<String> set = getProblematicMethods();
 		Set<String> testedset = new HashSet<String>();
 		
@@ -225,6 +236,10 @@ public class MagicalExperimentalDebuggingTool {
 	
 	private List<Integer> getFailuresLines() {
 		return failures_lines;
+	}
+	
+	public static String getCurrentMethod() {
+		return CURRENT_METHOD;
 	}
 	
 }

@@ -1,7 +1,6 @@
 package com.iagl.opl.medt.processors;
 
 import java.util.List;
-import java.util.Set;
 
 import com.iagl.opl.medt.MagicalExperimentalDebuggingTool;
 
@@ -14,10 +13,10 @@ import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.visitor.Filter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
-public class ReallocationOverSightProcessor extends AbstractProcessor<CtClass> {
+public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> {
 
 	@Override
-	public boolean isToBeProcessed(CtClass element) {
+	public boolean isToBeProcessed(CtMethod element) {
 
 		//We get the name of the tested class
 		String name = MagicalExperimentalDebuggingTool.getTestedClass().getSimpleName();
@@ -25,8 +24,11 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtClass> {
 		// we get the package of the tested class
 		String packageName = MagicalExperimentalDebuggingTool.getTestedClass().getPackage().getName();
 
-		//if the name and the package of the tested class is same as the class to be processed then we can start the processor, else we pass to the next class
-		if (name.equals(element.getSimpleName()) && packageName.equals(element.getPackage().getQualifiedName()))
+		//if the name and the package of the tested class is same as the class of the method to be processed then we can start the processor, else we pass to the next method
+		if (name.equals(element.getSimpleName()) && packageName.equals(((CtClass)element.getParent()).getPackage().getQualifiedName()))
+			return true;
+		//if the name of the method is the same as the current_method, we can start else passe to the next method
+		else if (MagicalExperimentalDebuggingTool.getCurrentMethod().equals(element.getSimpleName()))
 			return true;
 		else
 			return false;
@@ -39,45 +41,32 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtClass> {
 	 * 
 	 * 
 	 */
-	public void process(CtClass element) {
+	public void process(CtMethod element) {
 
-		// gettig all the method in this class 'element'
-		Set<CtMethod> methods = element.getAllMethods();
+		Filter<CtInvocation> filter = new TypeFilter(CtInvocation.class);
+		List<CtInvocation> invocations = element.getElements(filter);
 
-		//we get all problematic method tested previously
-		Set<String> toSpoon = MagicalExperimentalDebuggingTool.getTestedProblematicMethods();
+		// getting all invocation in this method
+		for (CtInvocation invocation : invocations) {
 
-		for (CtMethod m : methods) {
-			//is the method contain in the list of method to spoon
-			if (toSpoon.contains(m.getSimpleName())) {
-				Filter<CtInvocation> filter = new TypeFilter(CtInvocation.class);
-				List<CtInvocation> invocations = m.getElements(filter);
+			if (invocation.getParent() instanceof CtBlock) {
 
-				// getting all invocation in this method
-				for (CtInvocation invocation : invocations) {
+				//if the format of invocation is ok, we apply the solution.
+				if (correctFormat(invocation)) {
+					//we try to change the operation by stringObject = Operation 
+					String new_code = String.format("%s = %s", invocation.getTarget().toString(),
+							invocation.toString());
 
-					if (invocation.getParent() instanceof CtBlock) {
+					CtCodeSnippetStatement newStatement = getFactory().Core().createCodeSnippetStatement();
+					newStatement.setValue(new_code);
 
-						//if the format of invocation is ok, we apply the solution.
-						if (correctFormat(invocation)) {
-							//we try to change the operation by stringObject = Operation 
-							String new_code = String.format("%s = %s", invocation.getTarget().toString(),
-									invocation.toString());
-
-							CtCodeSnippetStatement newStatement = getFactory().Core().createCodeSnippetStatement();
-							newStatement.setValue(new_code);
-
-							invocation.replace(newStatement);
-						}
-					}
-
+					invocation.replace(newStatement);
 				}
-
-			}			
+			}
 
 		}
 
-	}
+	}			
 
 	/**
 	 * Verifying the invocation.
@@ -91,7 +80,7 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtClass> {
 	 * "toLowerCase"
 	 * "toUpperCase"
 	 * @param invocation
-	 * @return true if valid false esle.
+	 * @return true if valid false else.
 	 */
 	private boolean correctFormat(CtInvocation invocation) {
 
