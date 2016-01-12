@@ -1,6 +1,8 @@
 package com.iagl.opl.medt;
 
 import java.awt.Point;
+import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -8,6 +10,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import javax.tools.JavaCompiler;
+import javax.tools.ToolProvider;
+
+import org.apache.commons.io.FileUtils;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
@@ -67,9 +73,10 @@ public class MagicalExperimentalDebuggingTool {
 		calculateTestedClass();
 		
 		// Path of the class to spoon
-		String input = String.format("%s/%s%s.java", System.getProperty("user.dir")
-				, mpath, getTestedClass().getName().replace(".", "/"));
+		String input = String.format("%s/%s.java", System.getProperty("user.dir")
+				, getTestedClass().getSimpleName());
 		
+		input = input.replace("target/test-classes", "src/test/java");
 		
 		while (!getTestedProblematicMethods().isEmpty()) {
 			CURRENT_METHOD = String.valueOf(getTestedProblematicMethods().toArray()[0]);
@@ -83,23 +90,53 @@ public class MagicalExperimentalDebuggingTool {
 					if (first_start)
 						first_start = false;
 					
-					Launcher l = new Launcher();		
+					Launcher l = new Launcher();	
 			        l.addInputResource(input);
 			        l.addProcessor(procs[i]);
 			        l.run();
 			         
 			        CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
+			        
+			        System.out.println("=========== Created Mutant ============");
 			        System.out.println(c);
+			        System.out.println("=========== Tests ============");
+			        
+			        File oldjava = new File(input);
+			        File olddoc = new File("old");
+			        File newjava = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".java");
+			      
+			        olddoc.mkdir();
+			        try {
+						FileUtils.copyFileToDirectory(oldjava, olddoc);
+						FileUtils.copyFile(newjava, oldjava);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			        
+			   	   	JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+			        compiler.run(null, null, null, newjava.getAbsolutePath());
+			        
+			        File newclassfile = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".class");
+			        File oldclassfile = new File(TESTED_CLASS.getSimpleName()+".class");
+			        try {
+						FileUtils.copyFile(newclassfile, oldclassfile);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			        
+			        runTestClass();
 			        
 			        // COMMENT RUNNER LES TESTS SUR LA CLASSE SPOONEE ???
-					
+					/*
 					if (regressions() == 1) {
 						//	RIEN
 					}
 			         else {
 			        	//REMETTRE L'ANCIENNE CLASSE
 			         }
-			     
+			     */
 				}
 			}
 
@@ -123,6 +160,7 @@ public class MagicalExperimentalDebuggingTool {
 		}
 		
 		failures_lines = problematicAsserts();
+		System.out.println("failures : "+failures_lines.size());
 		
 	}
 	
