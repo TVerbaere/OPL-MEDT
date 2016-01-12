@@ -118,7 +118,9 @@ public class MagicalExperimentalDebuggingTool {
 			        compiler.run(null, null, null, newjava.getAbsolutePath());
 			        
 			        File newclassfile = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".class");
-			        File oldclassfile = new File(TESTED_CLASS.getSimpleName()+".class");
+			        //File oldclassfile = new File((new File("spooned").getAbsoluteFile().getParentFile().getAbsolutePath().replace("test-classes","classes"))+"/"+TESTED_CLASS.getSimpleName()+".class");
+			        File oldclassfile = new File("/home/thibaud/M2/OPL/OPL-MEDT/MagicalExperimentalDebuggingTool/target/test-classes/com/iagl/opl/medt/DarkVadorTest.class");
+			        
 			        try {
 						FileUtils.copyFile(newclassfile, oldclassfile);
 					} catch (IOException e) {
@@ -126,17 +128,14 @@ public class MagicalExperimentalDebuggingTool {
 						e.printStackTrace();
 					}
 			        
-			        runTestClass();
 			        
-			        // COMMENT RUNNER LES TESTS SUR LA CLASSE SPOONEE ???
-					/*
 					if (regressions() == 1) {
 						//	RIEN
 					}
 			         else {
 			        	//REMETTRE L'ANCIENNE CLASSE
 			         }
-			     */
+
 				}
 			}
 

@@ -13,7 +13,7 @@ public class DarkVador {
 
     public java.lang.String getSide() {
         java.lang.String side = "dark side";
-        side.substring(0, 4);
+       	side.substring(0, 4);
         side.toUpperCase();
         return side;
     }

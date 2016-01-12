@@ -8,7 +8,7 @@ import java.net.URLClassLoader;
 public class Launcher {
 	
 	public static void main(String[] args) throws ClassNotFoundException, MalformedURLException {
-		
+				
 		File f = new File(args[0]);
 		URL url = f.toURI().toURL();
 		URL[] urls = {url};
