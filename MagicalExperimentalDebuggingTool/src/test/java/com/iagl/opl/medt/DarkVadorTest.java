@@ -23,5 +23,11 @@ public class DarkVadorTest {
 	public void getSideTest() {
 		assertEquals("DARK", dark.getSide());
 	}
+	
+	@Test
+	public void sayInverseTest() {
+		assertTrue(dark.sayInverse(false));
+		assertFalse(dark.sayInverse(true));
+	}
 
 }
