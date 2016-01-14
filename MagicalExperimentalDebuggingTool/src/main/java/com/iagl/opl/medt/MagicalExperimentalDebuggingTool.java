@@ -20,6 +20,8 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
+import com.iagl.opl.medt.processors.ConditionInversionProcessor;
+import com.iagl.opl.medt.processors.ConditionInversionResetProcessor;
 import com.iagl.opl.medt.processors.ReallocationOverSightProcessor;
 import com.iagl.opl.medt.processors.ReallocationOverSightResetProcessor;
 
@@ -53,8 +55,8 @@ public class MagicalExperimentalDebuggingTool {
 	private String testclassName;
 	
 	// list of processors applied by MEDT
-	private Processor[] procs = {new ReallocationOverSightProcessor()};
-	private Processor[] procsReset = {new ReallocationOverSightResetProcessor()};
+	private Processor[] procs = {new ReallocationOverSightProcessor(), new ConditionInversionProcessor()};
+	private Processor[] procsReset = {new ReallocationOverSightResetProcessor(), new ConditionInversionResetProcessor()};
 	
 	public MagicalExperimentalDebuggingTool(String loader, String className) {
 		aborts = new HashSet<String>();
