@@ -21,6 +21,7 @@ import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
 import com.iagl.opl.medt.processors.ReallocationOverSightProcessor;
+import com.iagl.opl.medt.processors.ReallocationOverSightResetProcessor;
 
 import spoon.Launcher;
 import spoon.processing.Processor;
@@ -53,6 +54,7 @@ public class MagicalExperimentalDebuggingTool {
 	
 	// list of processors applied by MEDT
 	private Processor[] procs = {new ReallocationOverSightProcessor()};
+	private Processor[] procsReset = {new ReallocationOverSightResetProcessor()};
 	
 	public MagicalExperimentalDebuggingTool(String loader, String className) {
 		aborts = new HashSet<String>();
@@ -84,8 +86,8 @@ public class MagicalExperimentalDebuggingTool {
 		
 				boolean first_start = true;
 				
-				while (first_start || !getActualPermutation().equals(new Point(0,0))) {
-				
+				while ((first_start || !getActualPermutation().equals(new Point(0,0))) && getTestedProblematicMethods().contains(CURRENT_METHOD)) {
+					
 					if (first_start)
 						first_start = false;
 					
@@ -100,21 +102,30 @@ public class MagicalExperimentalDebuggingTool {
 			        System.out.println(c);
 			        System.out.println("=========== Tests ============");
 			        
-			        changeAndSaveOldClass(input);
+			        change(input);
 			        
 					if (regressions() != 1) {
-			        	backToOlderVersion(input);
+						Launcher l2 = new Launcher();
+				        l2.addInputResource(input);
+				        l2.addProcessor(procsReset[i]);
+				        l2.run();
+				        
+				        change(input);
 			        }
-					deleteHistory();
-
+								        					
+					// next permutation
+					nextPermutation();	
 				}
+				
+				resetPermutation();
 			}
 
 			// TOUTES LES POSSIBILITES DE MUTATIONS ONT ETE EXPLOITES : ABANDON POUR LA METHODE
 			aborts.add(CURRENT_METHOD);
 			
 		}
-			
+		
+		deleteSpoonRepertory();	
 		
 	}
 	
@@ -123,10 +134,7 @@ public class MagicalExperimentalDebuggingTool {
 			File f = new File(loaderLocation);
 			String sourceLoaderLocation = loaderLocation.replace("test-classes", "classes");
 			File f2 = new File(sourceLoaderLocation);
-			
-			if (!(f.exists() && f2.exists()))
-				System.out.println("a file is not here");
-			
+						
 			URL url = f.toURI().toURL();
 			URL url2 = f2.toURI().toURL();
 			
@@ -199,27 +207,22 @@ public class MagicalExperimentalDebuggingTool {
 		List<Integer> new_result = medt.getFailuresLines();
 		
 		if (last_result.equals(new_result)) {
-			System.out.println("no change with this mutant");
 			return 0;
 		}
 		
 		if (new_result.size() >= last_result.size()) {
-			System.out.println("regressions");
 			return -1;
 		}
 		
 		for (Integer i : new_result) {
 			if (!last_result.contains(i)) {
-				System.out.println("regressions");
 				return -1;
 			}
 		}
 		
 		failures_lines = new_result;
 		current_failures = medt.current_failures;
-		
-		System.out.println("improvments");
-		
+				
 		return 1;
 	}
 	
@@ -341,17 +344,12 @@ public class MagicalExperimentalDebuggingTool {
 	
 	// ============================= Versions Manager ====================================
 		
-	private void changeAndSaveOldClass(String oldJavaLocation) {
-		System.out.println("change with mutant");
+	private void change(String oldJavaLocation) {
+
 		File newJavaFile = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".java");		
         File oldJavaFile = new File(oldJavaLocation);
-        
-        // We create a temporary repertory
-        File tmp = new File("tmpsave");      
-        tmp.mkdir();
-        
+                
         try {
-			FileUtils.copyFileToDirectory(oldJavaFile, tmp);
 			FileUtils.copyFile(newJavaFile, oldJavaFile);
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -368,39 +366,16 @@ public class MagicalExperimentalDebuggingTool {
         File oldClassFile = new File(oldClassLocation);
         
         try {
-			FileUtils.copyFileToDirectory(oldClassFile, tmp);
 			FileUtils.copyFile(newClassFile, oldClassFile);
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
         
-	}
+	}	
 	
-	private void backToOlderVersion(String oldJavaLocation) {
-		System.out.println("back");
-        String sourcePath = TEST_CLASS.getProtectionDomain().getCodeSource().getLocation().getPath();
-        String locationInSource = TEST_CLASS.getName().replace(".", "/");
-        String oldClassLocation = String.format("%s%s.class", sourcePath, locationInSource);
-		
-		File javaFiletoDelete = new File(oldJavaLocation);
-		File javaClasstoDelete = new File(oldClassLocation);
-		File javaFile = new File("tmpsave/"+TESTED_CLASS.getSimpleName()+".java");
-		File javaClass = new File("tmpsave/"+TESTED_CLASS.getSimpleName()+".class");
-		
-		try {
-			FileUtils.copyFile(javaFile, javaFiletoDelete);
-			FileUtils.copyFile(javaClass, javaClasstoDelete);
-
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-	
-	
-	private void deleteHistory() {
-		File tmp = new File("tmpsave");
+	private void deleteSpoonRepertory() {
+		File tmp = new File("spooned");
 		tmp.delete();
 	}
 	
@@ -424,6 +399,14 @@ public class MagicalExperimentalDebuggingTool {
 	}
 	
 	/**
+	 * Reset permutation
+	 */
+	private static void resetPermutation() {
+		actual_permutation = new Point(0,0);
+		permutations = 0;
+	}
+	
+	/**
 	 * Pass to the next couple of permutation
 	 */
 	public static void nextPermutation() {
@@ -432,8 +415,7 @@ public class MagicalExperimentalDebuggingTool {
 		
 		// if it's the maximal couple: reset 
 		if (min == permutations && max == permutations) {
-			actual_permutation = new Point(0,0);
-			permutations = 0;
+			resetPermutation();
 		}
 
 		else if (max == permutations) {
