@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -15,7 +17,6 @@ import javax.tools.ToolProvider;
 
 import org.apache.commons.io.FileUtils;
 import org.junit.runner.JUnitCore;
-import org.junit.runner.Request;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
@@ -46,38 +47,36 @@ public class MagicalExperimentalDebuggingTool {
 	// list of aborts methods
 	private Set<String> aborts;
 	
-	private String mpath = ""; // Only use for intern tests
+	private String loaderLocation;
+	
+	private String testclassName;
 	
 	// list of processors applied by MEDT
 	private Processor[] procs = {new ReallocationOverSightProcessor()};
 	
-	public MagicalExperimentalDebuggingTool(Class<?> clazz) {
-		TEST_CLASS = clazz;
+	public MagicalExperimentalDebuggingTool(String loader, String className) {
 		aborts = new HashSet<String>();
+		testclassName = className;
+		loaderLocation = loader;
 	}
-	
-	// Constructor only use for intern tests
-	public MagicalExperimentalDebuggingTool(Class<?> clazz, String path) {
-		TEST_CLASS = clazz;
-		mpath = path;
-		aborts = new HashSet<String>();
-	}
-	
+		
 	/**
 	 * Try to debug the class
 	 */
-	public void debugClass() {
+	public void debugClass() {	
+		
 		// we run tests
 		runTestClass();
 		// we try to retrieve the tested class
 		calculateTestedClass();
 		
 		// Path of the class to spoon
-		String input = String.format("%s/%s.java", System.getProperty("user.dir")
-				, getTestedClass().getSimpleName());
-		
-		input = input.replace("target/test-classes", "src/test/java");
-		
+		String sourcePath = TESTED_CLASS.getProtectionDomain().getCodeSource().getLocation().getPath();
+		String locationInSource = TESTED_CLASS.getName().replace(".", "/");
+		String input = String.format("%s/%s.java", sourcePath, locationInSource);
+	
+		input = input.replace("target/classes", "src/main/java");
+						
 		while (!getTestedProblematicMethods().isEmpty()) {
 			CURRENT_METHOD = String.valueOf(getTestedProblematicMethods().toArray()[0]);
 		
@@ -101,40 +100,12 @@ public class MagicalExperimentalDebuggingTool {
 			        System.out.println(c);
 			        System.out.println("=========== Tests ============");
 			        
-			        File oldjava = new File(input);
-			        File olddoc = new File("old");
-			        File newjava = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".java");
-			      
-			        olddoc.mkdir();
-			        try {
-						FileUtils.copyFileToDirectory(oldjava, olddoc);
-						FileUtils.copyFile(newjava, oldjava);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+			        changeAndSaveOldClass(input);
 			        
-			   	   	JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
-			        compiler.run(null, null, null, newjava.getAbsolutePath());
-			        
-			        File newclassfile = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".class");
-			        //File oldclassfile = new File((new File("spooned").getAbsoluteFile().getParentFile().getAbsolutePath().replace("test-classes","classes"))+"/"+TESTED_CLASS.getSimpleName()+".class");
-			        File oldclassfile = new File("/home/thibaud/M2/OPL/OPL-MEDT/MagicalExperimentalDebuggingTool/target/test-classes/com/iagl/opl/medt/DarkVadorTest.class");
-			        
-			        try {
-						FileUtils.copyFile(newclassfile, oldclassfile);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-			        
-			        
-					if (regressions() == 1) {
-						//	RIEN
-					}
-			         else {
-			        	//REMETTRE L'ANCIENNE CLASSE
-			         }
+					if (regressions() != 1) {
+			        	backToOlderVersion(input);
+			        }
+					deleteHistory();
 
 				}
 			}
@@ -147,28 +118,42 @@ public class MagicalExperimentalDebuggingTool {
 		
 	}
 	
+	private void loadTestClass() {
+		try {
+			File f = new File(loaderLocation);
+			String sourceLoaderLocation = loaderLocation.replace("test-classes", "classes");
+			File f2 = new File(sourceLoaderLocation);
+			
+			if (!(f.exists() && f2.exists()))
+				System.out.println("a file is not here");
+			
+			URL url = f.toURI().toURL();
+			URL url2 = f2.toURI().toURL();
+			
+			URL[] urls = {url, url2};
+			URLClassLoader loader = new URLClassLoader(urls);
+			
+			TEST_CLASS = loader.loadClass(testclassName);
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+		
 	private void runTestClass() {
-				
+		loadTestClass();
+						
 		current_failures = new ArrayList<Failure>();
 		failures_lines = new ArrayList<Integer>();
 		
-		for (Method m : TEST_CLASS.getDeclaredMethods()) {
-			if (m.getAnnotations()[0].annotationType().getName().equals("org.junit.Test")) {
-				runTest(m.getName());
-			}
-		}
+		JUnitCore core = new JUnitCore();
+		Result result = core.run(TEST_CLASS);
+
+		current_failures.addAll(result.getFailures());
 		
 		failures_lines = problematicAsserts();
 		System.out.println("failures : "+failures_lines.size());
-		
-	}
-	
-	private void runTest(String testname) {
-		
-		Request request = Request.method(TEST_CLASS,testname);
-		Result result = new JUnitCore().run(request);
-		
-		current_failures.addAll(result.getFailures());
 		
 	}
 	
@@ -209,23 +194,31 @@ public class MagicalExperimentalDebuggingTool {
 		
 		List<Integer> last_result = getFailuresLines();
 				
-		MagicalExperimentalDebuggingTool medt = new MagicalExperimentalDebuggingTool(TEST_CLASS,mpath);
+		MagicalExperimentalDebuggingTool medt = new MagicalExperimentalDebuggingTool(loaderLocation, testclassName);
 		medt.runTestClass();
 		List<Integer> new_result = medt.getFailuresLines();
 		
-		if (last_result.equals(new_result))
+		if (last_result.equals(new_result)) {
+			System.out.println("no change with this mutant");
 			return 0;
+		}
 		
-		if (new_result.size() >= last_result.size())
+		if (new_result.size() >= last_result.size()) {
+			System.out.println("regressions");
 			return -1;
+		}
 		
 		for (Integer i : new_result) {
-			if (!last_result.contains(i))
+			if (!last_result.contains(i)) {
+				System.out.println("regressions");
 				return -1;
+			}
 		}
 		
 		failures_lines = new_result;
 		current_failures = medt.current_failures;
+		
+		System.out.println("improvments");
 		
 		return 1;
 	}
@@ -245,8 +238,8 @@ public class MagicalExperimentalDebuggingTool {
 		// (= bonne pratique des tests unitaires)
 		
 		// Hypothèse 3 : Le nom de la méthode testée se trouve dans le nom de la méthode de test
-		// (= bonne pratique des tests utnitaires)
-				
+		// (= bonne pratique des tests utnitaires)		
+	
 		for (Field f :TEST_CLASS.getDeclaredFields()) {
 			if (f.getType().getPackage().equals(TEST_CLASS.getPackage())) {
 				clazz.add(f.getType());
@@ -344,6 +337,71 @@ public class MagicalExperimentalDebuggingTool {
 	 */
 	public static String getCurrentMethod() {
 		return CURRENT_METHOD;
+	}
+	
+	// ============================= Versions Manager ====================================
+		
+	private void changeAndSaveOldClass(String oldJavaLocation) {
+		System.out.println("change with mutant");
+		File newJavaFile = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".java");		
+        File oldJavaFile = new File(oldJavaLocation);
+        
+        // We create a temporary repertory
+        File tmp = new File("tmpsave");      
+        tmp.mkdir();
+        
+        try {
+			FileUtils.copyFileToDirectory(oldJavaFile, tmp);
+			FileUtils.copyFile(newJavaFile, oldJavaFile);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+        
+   	   	JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
+        compiler.run(null, null, null, newJavaFile.getAbsolutePath());
+                
+        String sourcePath = TESTED_CLASS.getProtectionDomain().getCodeSource().getLocation().getPath();
+        String locationInSource = TESTED_CLASS.getName().replace(".", "/");
+        String oldClassLocation = String.format("%s%s.class", sourcePath, locationInSource);
+        
+        File newClassFile = new File("spooned/"+TESTED_CLASS.getName().replace(".", "/")+".class");
+        File oldClassFile = new File(oldClassLocation);
+        
+        try {
+			FileUtils.copyFileToDirectory(oldClassFile, tmp);
+			FileUtils.copyFile(newClassFile, oldClassFile);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+        
+	}
+	
+	private void backToOlderVersion(String oldJavaLocation) {
+		System.out.println("back");
+        String sourcePath = TEST_CLASS.getProtectionDomain().getCodeSource().getLocation().getPath();
+        String locationInSource = TEST_CLASS.getName().replace(".", "/");
+        String oldClassLocation = String.format("%s%s.class", sourcePath, locationInSource);
+		
+		File javaFiletoDelete = new File(oldJavaLocation);
+		File javaClasstoDelete = new File(oldClassLocation);
+		File javaFile = new File("tmpsave/"+TESTED_CLASS.getSimpleName()+".java");
+		File javaClass = new File("tmpsave/"+TESTED_CLASS.getSimpleName()+".class");
+		
+		try {
+			FileUtils.copyFile(javaFile, javaFiletoDelete);
+			FileUtils.copyFile(javaClass, javaClasstoDelete);
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	private void deleteHistory() {
+		File tmp = new File("tmpsave");
+		tmp.delete();
 	}
 	
 	// ============================= Permutations Manager ================================
