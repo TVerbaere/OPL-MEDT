@@ -376,7 +376,21 @@ public class MagicalExperimentalDebuggingTool {
 	
 	private void deleteSpoonRepertory() {
 		File tmp = new File("spooned");
-		tmp.delete();
+		removeDirectory(tmp);
+	}
+	
+	public void removeDirectory(File dir) {
+	    if (dir.isDirectory()) {
+	        File[] files = dir.listFiles();
+	        if (files != null && files.length > 0) {
+	            for (File aFile : files) {
+	                removeDirectory(aFile);
+	            }
+	        }
+	        dir.delete();
+	    } else {
+	        dir.delete();
+	    }
 	}
 	
 	// ============================= Permutations Manager ================================
