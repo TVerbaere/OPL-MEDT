@@ -2,7 +2,7 @@ package com.iagl.opl.medt;
 
 public class Launcher {
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws Exception {
 		
 		if (args.length == 2) {
 
@@ -10,6 +10,9 @@ public class Launcher {
 		
 			medt.debugClass();
 		
+		}else{
+			
+			System.out.println( "Bad Argument, Template : medt.jar PATH_TO_TEST_CLASS_DIR   PACKAGE.TEST_CLASS");
 		}
 				
 	}
