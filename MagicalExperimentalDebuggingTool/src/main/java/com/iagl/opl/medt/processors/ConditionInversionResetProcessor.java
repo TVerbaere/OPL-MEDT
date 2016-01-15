@@ -60,20 +60,14 @@ public class ConditionInversionResetProcessor extends AbstractProcessor<CtMethod
 			// we check if the candidate is concerned by the change
 			if (MagicalExperimentalDebuggingTool.getActualPermutation().x <= i &&
 					MagicalExperimentalDebuggingTool.getActualPermutation().y >= i) {
-					
-				// we check if the candidate is concerned by the change
-				if (MagicalExperimentalDebuggingTool.getActualPermutation().x <= i &&
-					MagicalExperimentalDebuggingTool.getActualPermutation().y >= i) {
-					
-					
-					//we try to change (inverse) the condition
-					String new_code = _if.getCondition().toString().substring(2, _if.getCondition().toString().length()-1);
-			
-					CtCodeSnippetExpression<Boolean> newExpression = getFactory().Core().createCodeSnippetExpression();
-					newExpression.setValue(new_code);
+												
+				//we try to change (inverse) the condition
+				String new_code = _if.getCondition().toString().substring(1, _if.getCondition().toString().length());
+				
+				CtCodeSnippetExpression<Boolean> newExpression = getFactory().Core().createCodeSnippetExpression();
+				newExpression.setValue(new_code);
 							
-					_if.setCondition(newExpression);
-				}
+				_if.setCondition(newExpression);
 			
 			}
 		}

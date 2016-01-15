@@ -1,5 +1,6 @@
 package com.iagl.opl.medt.processors;
 
+import java.awt.Point;
 import java.util.List;
 
 import com.iagl.opl.medt.MagicalExperimentalDebuggingTool;
@@ -44,7 +45,7 @@ public class ReallocationOverSightResetProcessor extends AbstractProcessor<CtMet
 	 * 
 	 */
 	public void process(CtMethod element) {
-		
+				
 		// For the method to spoon, get all invocations thanks to a filter
 		Filter<CtStatement> filter = new TypeFilter(CtStatement.class);
 		List<CtStatement> expressions = element.getElements(filter);
@@ -58,13 +59,14 @@ public class ReallocationOverSightResetProcessor extends AbstractProcessor<CtMet
 				
 				CtExpression exp = assignment.getAssignment();
 				
-				if (correctFormat(exp)) {
-					i++;
+				if (correctFormat(exp) && ReallocationOverSightProcessor.changed_expressions.contains(expression.toString())) {
+					
+					Point permutation = MagicalExperimentalDebuggingTool.getActualPermutation();
+					int nb_changed = permutation.y - permutation.x + 1;
+				 	i++;
 						
 					// we check if the candidate is concerned by the change
-					if (MagicalExperimentalDebuggingTool.getActualPermutation().x <= i &&
-							MagicalExperimentalDebuggingTool.getActualPermutation().y >= i) {
-						
+					if (i <= nb_changed) {						
 						
 						CtCodeSnippetStatement newExpression = getFactory().Core().createCodeSnippetStatement();
 						newExpression.setValue(exp.toString());

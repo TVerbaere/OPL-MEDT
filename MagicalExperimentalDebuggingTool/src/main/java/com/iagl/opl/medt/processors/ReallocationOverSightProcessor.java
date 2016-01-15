@@ -1,6 +1,7 @@
 package com.iagl.opl.medt.processors;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.iagl.opl.medt.MagicalExperimentalDebuggingTool;
@@ -15,6 +16,8 @@ import spoon.reflect.visitor.Filter;
 import spoon.reflect.visitor.filter.TypeFilter;
 
 public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> {
+	
+	public static List<String> changed_expressions;
 
 	@Override
 	public boolean isToBeProcessed(CtMethod element) {
@@ -50,6 +53,8 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> 
 		
 		// if the actual permutation is (0,0) then the processor is started for the first time, so we count candidates
 		if (MagicalExperimentalDebuggingTool.getActualPermutation().equals(new Point(0,0))) {
+			changed_expressions = new ArrayList<String>();
+			
 			for (CtInvocation invocation : invocations) {
 				
 				if (invocation.getParent() instanceof CtBlock) {
@@ -83,6 +88,8 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> 
 						newStatement.setValue(new_code);
 						
 						invocation.replace(newStatement);
+						
+						changed_expressions.add(newStatement.toString());
 					}
 				}
 			}
