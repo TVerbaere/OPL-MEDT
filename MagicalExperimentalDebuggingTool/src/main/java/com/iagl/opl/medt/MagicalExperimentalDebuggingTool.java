@@ -72,9 +72,21 @@ public class MagicalExperimentalDebuggingTool {
 
 		// we run tests
 		runTestClass();
+		
+		if(failures_lines.isEmpty() ){
+			
+			System.out.println("Test clean, nothing to do.");
+			
+			return;
+			
+		}
+		
+		
 		// we try to retrieve the tested class
 		calculateTestedClass();
 
+		
+		
 		String sourcePath ;
 		String locationInSource ;
 		String input ;
@@ -141,7 +153,7 @@ public class MagicalExperimentalDebuggingTool {
 
 	}
 
-	private void loadTestClass() {
+	private void loadTestClass() throws Exception {
 		try {
 			File f = new File(loaderLocation);
 			String sourceLoaderLocation = loaderLocation.replace("test-classes", "classes");
@@ -157,11 +169,12 @@ public class MagicalExperimentalDebuggingTool {
 
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			System.err.println("Cannot found the test class :");
+			throw e;
 		}
 	}
 
-	private void runTestClass() {
+	private void runTestClass() throws Exception {
 		loadTestClass();
 
 		current_failures = new ArrayList<Failure>();
@@ -209,8 +222,9 @@ public class MagicalExperimentalDebuggingTool {
 	 * 
 	 * @param last_result
 	 * @return
+	 * @throws Exception 
 	 */
-	private int regressions() {
+	private int regressions() throws Exception {
 
 		List<Integer> last_result = getFailuresLines();
 
