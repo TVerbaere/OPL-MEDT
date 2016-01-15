@@ -10,8 +10,7 @@ public class Launcher {
 		
 			medt.debugClass();
 		
-		}
-		if (args.length == 3) {
+		}else if (args.length == 3) {
 
 			MagicalExperimentalDebuggingTool medt = new MagicalExperimentalDebuggingTool(args[0], args[1], args[2]);
 		

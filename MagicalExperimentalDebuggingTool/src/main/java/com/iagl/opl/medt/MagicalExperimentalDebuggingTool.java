@@ -53,7 +53,7 @@ public class MagicalExperimentalDebuggingTool {
 	private String loaderLocation;
 
 	private String testclassName;
-	
+
 	private String testedClassName;
 
 	// list of processors applied by MEDT
@@ -66,7 +66,7 @@ public class MagicalExperimentalDebuggingTool {
 		loaderLocation = loader;
 		testedClassName = null;
 	}
-	
+
 	public MagicalExperimentalDebuggingTool(String loader, String className, String testedClass) {
 		aborts = new HashSet<String>();
 		testclassName = className;
@@ -82,27 +82,27 @@ public class MagicalExperimentalDebuggingTool {
 
 		// we run tests
 		runTestClass();
-		
+
 		if(failures_lines.isEmpty() ){
-			
+
 			System.out.println("Test clean, nothing to do.");
-			
+
 			return;
-			
+
 		}
-		
-		
+
+
 		// we try to retrieve the tested class
 		if (testedClassName == null) {
 			calculateTestedClass();
 		}
 		else {
-			
+
 			loadTestedClass();
 		}
 
-		
-		
+
+
 		String sourcePath ;
 		String locationInSource ;
 		String input ;
@@ -112,12 +112,19 @@ public class MagicalExperimentalDebuggingTool {
 			sourcePath = TESTED_CLASS.getProtectionDomain().getCodeSource().getLocation().getPath();
 
 			locationInSource = TESTED_CLASS.getName().replace(".", "/");
-			input = String.format("%s/%s.java", sourcePath, locationInSource);
+			if(sourcePath.substring(sourcePath.length()-1, sourcePath.length()).equals("/")){
+				
+				input = String.format("%s%s.java", sourcePath, locationInSource);
+			}else{
+				input = String.format("%s/%s.java", sourcePath, locationInSource);
+			}
+
 		}else{
-			throw new Exception("Cannot find the tested Class");
+			throw new Exception("Cannot find the tested Class : ");
 		}
 
 		input = input.replace("target/classes", "src/main/java");
+		input = input.replace("target/test-classes", "src/test/java");
 
 		while (!getTestedProblematicMethods().isEmpty()) {
 			CURRENT_METHOD = String.valueOf(getTestedProblematicMethods().toArray()[0]);
@@ -134,7 +141,14 @@ public class MagicalExperimentalDebuggingTool {
 					Launcher l = new Launcher();	
 					l.addInputResource(input);
 					l.addProcessor(procs[i]);
-					l.run();
+					try{
+						l.run();
+					}catch(IllegalArgumentException e){
+
+						System.err.println("File missing :" + input+ " your project may not respect the maven package convention.");
+						throw e;
+
+					}
 
 					CtClass c = (CtClass) l.getFactory().Package().getRootPackage().getElements(new NameFilter(getTestedClass().getSimpleName())).get(0);
 
@@ -168,7 +182,7 @@ public class MagicalExperimentalDebuggingTool {
 		deleteSpoonRepertory();	
 
 	}
-	
+
 	private void loadTestedClass() throws Exception {
 		try {
 			File f = new File(loaderLocation);
