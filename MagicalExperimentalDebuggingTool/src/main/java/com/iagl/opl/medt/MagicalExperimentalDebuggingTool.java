@@ -53,6 +53,8 @@ public class MagicalExperimentalDebuggingTool {
 	private String loaderLocation;
 
 	private String testclassName;
+	
+	private String testedClassName;
 
 	// list of processors applied by MEDT
 	private Processor[] procs = {new ReallocationOverSightProcessor(), new ConditionInversionProcessor()};
@@ -62,6 +64,14 @@ public class MagicalExperimentalDebuggingTool {
 		aborts = new HashSet<String>();
 		testclassName = className;
 		loaderLocation = loader;
+		testedClassName = null;
+	}
+	
+	public MagicalExperimentalDebuggingTool(String loader, String className, String testedClass) {
+		aborts = new HashSet<String>();
+		testclassName = className;
+		loaderLocation = loader;
+		testedClassName = testedClass;
 	}
 
 	/**
@@ -83,7 +93,13 @@ public class MagicalExperimentalDebuggingTool {
 		
 		
 		// we try to retrieve the tested class
-		calculateTestedClass();
+		if (testedClassName == null) {
+			calculateTestedClass();
+		}
+		else {
+			
+			loadTestedClass();
+		}
 
 		
 		
@@ -151,6 +167,27 @@ public class MagicalExperimentalDebuggingTool {
 
 		deleteSpoonRepertory();	
 
+	}
+	
+	private void loadTestedClass() throws Exception {
+		try {
+			File f = new File(loaderLocation);
+			String sourceLoaderLocation = loaderLocation.replace("test-classes", "classes");
+			File f2 = new File(sourceLoaderLocation);
+
+			URL url = f.toURI().toURL();
+			URL url2 = f2.toURI().toURL();
+
+			URL[] urls = {url, url2};
+			URLClassLoader loader = new URLClassLoader(urls);
+
+			TESTED_CLASS = loader.loadClass(testedClassName);
+
+		}
+		catch (Exception e) {
+			System.err.println("Cannot found the tested class :");
+			throw e;
+		}
 	}
 
 	private void loadTestClass() throws Exception {
@@ -276,7 +313,7 @@ public class MagicalExperimentalDebuggingTool {
 		}
 
 		if (clazz.isEmpty())
-			System.out.println("Cannot found tested class. Your program is so bad !");
+			System.out.println("Cannot found tested class.");
 
 		if (clazz.size() == 1) {
 			TESTED_CLASS = clazz.get(0);
@@ -290,7 +327,7 @@ public class MagicalExperimentalDebuggingTool {
 			}
 		}
 
-		System.out.println("Cannot found tested class. Your program is so bad !");
+		System.out.println("Cannot found tested class.");
 		return null;
 	}
 
@@ -332,7 +369,7 @@ public class MagicalExperimentalDebuggingTool {
 
 		// if the tested class is not found
 		if (clazz == null) {
-			System.out.println("Cannot found tested problematic methods. Your program is so bad !");
+			System.out.println("Cannot found tested problematic methods.");
 		}
 		else {
 			// if the tested class is found, for each method m of this class
