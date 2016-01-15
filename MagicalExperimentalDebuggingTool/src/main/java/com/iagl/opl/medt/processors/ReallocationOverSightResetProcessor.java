@@ -50,7 +50,6 @@ public class ReallocationOverSightResetProcessor extends AbstractProcessor<CtMet
 		Filter<CtStatement> filter = new TypeFilter(CtStatement.class);
 		List<CtStatement> expressions = element.getElements(filter);
 				
-		int i = 0;
 		// getting all invocation in this method
 		for (CtStatement expression : expressions) {
 						
@@ -58,21 +57,14 @@ public class ReallocationOverSightResetProcessor extends AbstractProcessor<CtMet
 				CtAssignment assignment = (CtAssignment)expression;
 				
 				CtExpression exp = assignment.getAssignment();
-				
-				if (correctFormat(exp) && ReallocationOverSightProcessor.changed_expressions.contains(expression.toString())) {
-					
-					Point permutation = MagicalExperimentalDebuggingTool.getActualPermutation();
-					int nb_changed = permutation.y - permutation.x + 1;
-				 	i++;
-						
-					// we check if the candidate is concerned by the change
-					if (i <= nb_changed) {						
-						
-						CtCodeSnippetStatement newExpression = getFactory().Core().createCodeSnippetStatement();
-						newExpression.setValue(exp.toString());
+								
+				if (correctFormat(exp) && ReallocationOverSightProcessor.changed_expressions.contains(expression.getPosition())) {
+
+					CtCodeSnippetStatement newExpression = getFactory().Core().createCodeSnippetStatement();
+					newExpression.setValue(exp.toString());
 											
-						expression.replace(newExpression);
-					}
+					expression.replace(newExpression);
+
 				}
 				
 			}

@@ -10,6 +10,7 @@ import spoon.processing.AbstractProcessor;
 import spoon.reflect.code.CtBlock;
 import spoon.reflect.code.CtCodeSnippetStatement;
 import spoon.reflect.code.CtInvocation;
+import spoon.reflect.cu.SourcePosition;
 import spoon.reflect.declaration.CtClass;
 import spoon.reflect.declaration.CtMethod;
 import spoon.reflect.visitor.Filter;
@@ -17,7 +18,7 @@ import spoon.reflect.visitor.filter.TypeFilter;
 
 public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> {
 	
-	public static List<String> changed_expressions;
+	public static List<SourcePosition> changed_expressions;
 
 	@Override
 	public boolean isToBeProcessed(CtMethod element) {
@@ -53,7 +54,7 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> 
 		
 		// if the actual permutation is (0,0) then the processor is started for the first time, so we count candidates
 		if (MagicalExperimentalDebuggingTool.getActualPermutation().equals(new Point(0,0))) {
-			changed_expressions = new ArrayList<String>();
+			changed_expressions = new ArrayList<SourcePosition>();
 			
 			for (CtInvocation invocation : invocations) {
 				
@@ -89,7 +90,7 @@ public class ReallocationOverSightProcessor extends AbstractProcessor<CtMethod> 
 						
 						invocation.replace(newStatement);
 						
-						changed_expressions.add(newStatement.toString());
+						changed_expressions.add(invocation.getPosition());
 					}
 				}
 			}
