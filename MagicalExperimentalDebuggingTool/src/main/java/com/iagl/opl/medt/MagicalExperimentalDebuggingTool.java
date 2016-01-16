@@ -91,7 +91,7 @@ public class MagicalExperimentalDebuggingTool {
 
 		}
 
-
+		System.out.println(current_failures.get(0).getTrace());
 		// we try to retrieve the tested class
 		if (testedClassName == null) {
 			calculateTestedClass();
@@ -105,19 +105,13 @@ public class MagicalExperimentalDebuggingTool {
 
 		String sourcePath ;
 		String locationInSource ;
-		String input ;
+		String input   ;
 
 		if(TESTED_CLASS != null){
 			// Path of the class to spoon
 			sourcePath = TESTED_CLASS.getProtectionDomain().getCodeSource().getLocation().getPath();
-
-			locationInSource = TESTED_CLASS.getName().replace(".", "/");
-			if(sourcePath.substring(sourcePath.length()-1, sourcePath.length()).equals("/")){
-				
-				input = String.format("%s%s.java", sourcePath, locationInSource);
-			}else{
-				input = String.format("%s/%s.java", sourcePath, locationInSource);
-			}
+			input =sourcePath;
+		
 
 		}else{
 			throw new Exception("Cannot find the tested Class : ");
@@ -156,15 +150,26 @@ public class MagicalExperimentalDebuggingTool {
 					System.out.println(c);
 					System.out.println("=========== Tests ============");
 
-					change(input);
+					String inputFile= null;
+					locationInSource = TESTED_CLASS.getName().replace(".", "/");
+						if(sourcePath.substring(sourcePath.length()-1, sourcePath.length()).equals("/")){
+
+						inputFile = String.format("%s%s.java", sourcePath, locationInSource);
+					}else{
+						inputFile = String.format("%s/%s.java", sourcePath, locationInSource);
+					}
+					
+					change(inputFile);
 
 					if (regressions() != 1) {
 						Launcher l2 = new Launcher();
 						l2.addInputResource(input);
 						l2.addProcessor(procsReset[i]);
 						l2.run();
+						
+						
 
-						change(input);
+						change(inputFile);
 					}
 
 					// next permutation

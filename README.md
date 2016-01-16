@@ -2,7 +2,7 @@
 The Magical &amp; Experimental Debugging Tool
 
 # RUN MEDT (on Maven Project) :
-	java -jar medt.jar /home/theobald/A/B/darkproject/target/test-classes darkproject.DarkVadorTest
+	java -jar medt.jar /path/to/target/test-classes com.iagl.opl.medt.DarkVadorTest
 	ou
-	java -jar medt.jar /home/theobald/A/B/darkproject/target/test-classes darkproject.DarkVadorTest darkproject.DarkVador
+	java -jar medt.jar /path/to//target/test-classes com.iagl.opl.medt.DarkVadorTest com.iagl.opl.medt.DarkVador
 
